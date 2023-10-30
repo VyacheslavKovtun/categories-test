@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { environment } from 'src/environments/environment';
 import { Category } from '../models/category.model';
+import { CategoryNode } from '../components/categories/categories.component';
 
 @Injectable({
   providedIn: 'root'
@@ -25,20 +26,42 @@ export class CategoryService {
     return category;
   }
 
-  async getFullInheritance(categoryId: number) {
+  async getAllInheritedCategories(categoryId: number) {
     let category = await this.getCategoryById(categoryId);
 
-    return await this.getParents(category);
+    return await this.getParentCategories(category);
   }
 
-  private async getParents(category?: Category) {
+  private async getParentCategories(category?: Category) {
     if(category?.parentCategoryId) {
       let parent = await this.getCategoryById(category.parentCategoryId);
       category.parentCategory = parent;
 
-      await this.getParents(parent);
+      await this.getParentCategories(parent);
     }
 
     return category;
+  }
+
+  async getChildCategories(parentId: number) {
+    let allCategories = await this.getAllCategories();
+
+    let childCategories = allCategories.filter(c => c.parentCategoryId == parentId);
+
+    return childCategories ?? [];
+  }
+
+  async hasChild(parentId: number) {
+    return (await this.getChildCategories(parentId))?.length > 0;
+  }
+
+  async getNodeCategories() {
+    let categories = await this.getAllCategories();
+    let nodes: CategoryNode[] = [];
+    for(let category of categories) {
+      nodes.push({ name: category.categoryName, id: category.categoryId, parentId: category.parentCategoryId })
+    }
+
+    return nodes;
   }
 }
